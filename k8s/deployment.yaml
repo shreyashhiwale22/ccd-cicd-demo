@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccd-demo-app
+  labels:
+    app: ccd-demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ccd-demo-app
+  template:
+    metadata:
+      labels:
+        app: ccd-demo-app
+    spec:
+      containers:
+        - name: ccd-demo-app
+          image: shreyh/ccd-demo-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 3
+            periodSeconds: 5

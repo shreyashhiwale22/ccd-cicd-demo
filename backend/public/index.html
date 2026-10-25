@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Dashboard</title>
+<style>
+  :root { --bg:#eef3fb; --card:#fff; --ink:#1b2a41; --muted:#6b7a90; --accent:#2f6fed; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  form { display:flex; gap:8px; margin-bottom: 20px; }
+  input { flex:1; padding:12px 14px; font-size:16px; border:1px solid #cdd7e6; border-radius:10px; }
+  button { padding:12px 20px; font-size:16px; border:0; border-radius:10px; background:var(--accent); color:#fff; cursor:pointer; }
+  .card { background:var(--card); border-radius:14px; padding:20px; box-shadow:0 2px 10px rgba(30,60,120,.08); margin-bottom:16px; }
+  .now { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .icon { font-size:64px; line-height:1; }
+  .temp { font-size:48px; font-weight:700; }
+  .meta { color:var(--muted); }
+  .days { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:12px; }
+  .day { text-align:center; padding:12px 8px; border-radius:12px; background:#f4f7fd; }
+  .day .d { font-weight:600; font-size:14px; }
+  .day .i { font-size:32px; margin:6px 0; }
+  .error { color:#b3261e; }
+  footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Weather Dashboard</h1>
+  <div class="sub">Current weather and 5-day forecast for any city</div>
+
+  <form id="form">
+    <input id="city" placeholder="Enter a city, e.g. Pune" autocomplete="off" required>
+    <button type="submit">Search</button>
+  </form>
+
+  <div id="error" class="card error hidden"></div>
+
+  <div id="result" class="hidden">
+    <div class="card now">
+      <div class="icon" id="icon"></div>
+      <div>
+        <div id="place" style="font-size:20px;font-weight:600"></div>
+        <div class="temp" id="temp"></div>
+        <div class="meta" id="desc"></div>
+      </div>
+      <div class="meta" id="extra"></div>
+    </div>
+    <div class="card"><div class="days" id="days"></div></div>
+  </div>
+
+  <footer id="status">Checking server...</footer>
+</main>
+
+<script>
+  const ICONS = (c) => c===0?'☀️': c<=2?'🌤️': c===3?'☁️': c<=48?'🌫️': c<=57?'🌦️': c<=67?'🌧️': c<=77?'❄️': c<=82?'🌦️': '⛈️';
+  const $ = (id) => document.getElementById(id);
+
+  async function search(city) {
+    $('error').classList.add('hidden');
+    try {
+      const res = await fetch('/api/weather?city=' + encodeURIComponent(city));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      render(data);
+    } catch (e) {
+      $('result').classList.add('hidden');
+      $('error').textContent = e.message;
+      $('error').classList.remove('hidden');
+    }
+  }
+
+  function render(d) {
+    $('icon').textContent = ICONS(d.current.code);
+    $('place').textContent = d.city + ', ' + d.country;
+    $('temp').textContent = Math.round(d.current.temperature) + '°C';
+    $('desc').textContent = d.current.description;
+    $('extra').innerHTML = 'Humidity: ' + d.current.humidity + '%<br>Wind: ' + d.current.windSpeed + ' km/h';
+    $('days').innerHTML = d.forecast.map(f => {
+      const name = new Date(f.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      return '<div class="day"><div class="d">' + name + '</div><div class="i">' + ICONS(f.code) + '</div>' +
+             '<div>' + Math.round(f.max) + '° / ' + Math.round(f.min) + '°</div>' +
+             '<div class="meta" style="font-size:12px">' + f.description + '</div></div>';
+    }).join('');
+    $('result').classList.remove('hidden');
+  }
+
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); search($('city').value.trim()); });
+
+  fetch('/health').then(r => r.json()).then(h => { $('status').textContent = h.message; })
+    .catch(() => { $('status').textContent = 'Server unreachable'; });
+
+  search('Pune');
+</script>
+</body>
+</html>
