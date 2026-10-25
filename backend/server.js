@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Change this text for the "source code change and re-run" step of the report.
-const HEALTH_MESSAGE = 'Server is running - version 1';
+const HEALTH_MESSAGE = 'Server is running - version 2';
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: HEALTH_MESSAGE });
